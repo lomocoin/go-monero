@@ -6,7 +6,11 @@ import (
 
 // Config holds the configuration of a monero rpc client.
 type Config struct {
-	Address       string
+	Scheme        string
+	Host          string
+	Port          string
+	Username      string
+	Password      string
 	CustomHeaders map[string]string
 	Transport     http.RoundTripper
 }

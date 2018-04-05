@@ -36,9 +36,9 @@ func testClientGetAddress(t *testing.T) {
 	//
 	// test starts here
 	rpccl := New(Config{
-		Address: sv0.URL + "/json_rpc",
+		Host: sv0.URL + "/json_rpc",
 	})
-	addr, err := rpccl.GetAddress()
+	addr, err := rpccl.GetAddress(nil)
 	assert.NoError(t, err)
 	assert.Equal(t, "45eoXYNHC4LcL2Hh42T9FMPTmZHyDEwDbgfBEuNj3RZUek8A4og4KiCfVL6ZmvHBfCALnggWtHH7QHF8426yRayLQq7MLf5", addr)
 }
@@ -66,7 +66,7 @@ func testClientGetBalance(t *testing.T) {
 	//
 	// test starts here
 	rpccl := New(Config{
-		Address: sv0.URL + "/json_rpc",
+		Host: sv0.URL + "/json_rpc",
 	})
 	balance, unlocked, err := rpccl.GetBalance()
 	assert.NoError(t, err)
@@ -147,7 +147,7 @@ type clientRequest struct {
 	Params *json.RawMessage `json:"params"`
 	// The request id. This can be of any type. It is used to match the
 	// response with the request that it is replying to.
-	Id uint64 `json:"id"`
+	ID uint64 `json:"id"`
 }
 
 // clientResponse represents a JSON-RPC response returned to a client.

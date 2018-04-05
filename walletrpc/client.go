@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"net"
+	"net/url"
+
 	"github.com/gorilla/rpc/v2/json2"
 )
 
@@ -14,7 +17,10 @@ type Client interface {
 	GetBalance() (balance, unlockedBalance uint64, err error)
 	// Return the wallet's address.
 	// address - string; The 95-character hex address string of the monero-wallet-rpc in session.
-	GetAddress() (address string, err error)
+	GetAddress(req *AddressRequest) (address *AddressResponse, err error)
+	// Return the wallet's subaddress.
+	// address - string; The 95-character hex address string of the monero-wallet-rpc in session.
+	GetAddressNew() (address string, addressIndex uint32, err error)
 	// GetHeight - Returns the wallet's current block height.
 	// height - unsigned int; The current monero-wallet-rpc's blockchain height.
 	// If the wallet has been offline for a long time, it may need to catch up with the daemon.
@@ -108,8 +114,13 @@ type Client interface {
 
 // New returns a new monero-wallet-rpc client.
 func New(cfg Config) Client {
+	rawURL := url.URL{
+		Scheme: cfg.Scheme,
+		Host:   net.JoinHostPort(cfg.Host, cfg.Port),
+		Path:   "json_rpc",
+	}
 	cl := &client{
-		addr:    cfg.Address,
+		addr:    rawURL.String(),
 		headers: cfg.CustomHeaders,
 	}
 	if cfg.Transport == nil {
@@ -143,13 +154,17 @@ func (c *client) do(method string, in, out interface{}) error {
 		}
 	}
 	resp, err := c.httpcl.Do(req)
+
 	if err != nil {
 		return err
 	}
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("http status %v", resp.StatusCode)
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// in theory this is only done to catch
 	// any monero related errors if
@@ -170,15 +185,31 @@ func (c *client) GetBalance() (balance, unlockedBalance uint64, err error) {
 	return jd.Balance, jd.UnlockedBalance, err
 }
 
-func (c *client) GetAddress() (address string, err error) {
+func (c *client) GetAddress(req *AddressRequest) (address *AddressResponse, err error) {
+	err = c.do("getaddress", req, address)
+	if err != nil {
+		return nil, err
+	}
+	return
+}
+
+func (c *client) GetAddressNew() (address string, addressIndex uint32, err error) {
+	jin := struct {
+		AccountIndex uint32 `json:"account_index"`
+		Label        string `json:"label,omitempty"`
+	}{
+		AccountIndex: 0,
+	}
 	jd := struct {
 		Address string `json:"address"`
+		Index   uint32 `json:"address_index"`
 	}{}
-	err = c.do("getaddress", nil, &jd)
+	err = c.do("create_address", &jin, &jd)
 	if err != nil {
-		return "", err
+		return
 	}
-	return jd.Address, nil
+	address, addressIndex = jd.Address, jd.Index
+	return
 }
 
 func (c *client) GetHeight() (height uint64, err error) {
@@ -293,9 +324,15 @@ func (c *client) GetTransferByTxID(txid string) (transfer *Transfer, err error) 
 
 func (c *client) IncomingTransfers(transfertype GetTransferType) (transfers []IncTransfer, err error) {
 	jin := struct {
-		TransferType GetTransferType `json:"transfer_type"`
+		TransferType   GetTransferType `json:"transfer_type"`
+		Verbose        bool            `json:"verbose"`
+		AccountIndex   uint32          `json:"account_index"`
+		SubaddrIndices []uint32        `json:"subaddr_indices"`
 	}{
 		transfertype,
+		true,
+		0,
+		[]uint32{},
 	}
 	jd := struct {
 		Transfers []IncTransfer `json:"transfers"`

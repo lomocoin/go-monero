@@ -1,11 +1,26 @@
 package walletrpc
 
+// AddressRequest 获取地址请求
+type AddressRequest struct {
+	AccountIndex uint32   `json:"account_index"`
+	AddressIndex []uint32 `json:"address_index"`
+}
+
+// AddressResponse 获取地址列表响应
+type AddressResponse struct {
+	Address   string `json:"address"`
+	Addresses []struct {
+		Address      string `json:"address"`
+		AddressIndex int    `json:"address_index"`
+		Label        string `json:"label"`
+		Used         bool   `json:"used"`
+	} `json:"addresses"`
+}
+
 // TransferRequest is the request body of the Transfer client rpc call.
 type TransferRequest struct {
 	// Destinations - array of destinations to receive XMR:
 	Destinations []Destination `json:"destinations"`
-	// Fee - unsigned int; Ignored, will be automatically calculated.
-	Fee uint64 `json:"fee,omitempty"`
 	// Mixin - unsigned int; Number of outpouts from the blockchain to mix with (0 means no mixing).
 	Mixin uint64 `json:"mixin"`
 	// unlock_time - unsigned int; Number of blocks before the monero can be spent (0 to not add a lock).
@@ -20,7 +35,8 @@ type TransferRequest struct {
 	// do_not_relay - boolean; (Optional) If true, the newly created transaction will not be relayed to the monero network. (Defaults to false)
 	DoNotRelay bool `json:"do_not_relay,omitempty"`
 	// get_tx_hex - boolean; Return the transaction as hex string after sending
-	GetTxHex bool `json:"get_tx_hex,omitempty"`
+	GetTxHex      bool `json:"get_tx_hex,omitempty"`
+	GetTxMetadata bool `json:"get_tx_metadata,omitempty"`
 }
 
 // Destination to receive XMR
@@ -33,14 +49,17 @@ type Destination struct {
 
 // TransferResponse is the successful output of a Client.Transfer()
 type TransferResponse struct {
+	Amount uint64 `json:"amount"`
 	// fee - Integer value of the fee charged for the txn.
-	Fee uint64 `json:"fee"`
+	Fee           uint64 `json:"fee"`
+	MultisigTxset string `json:"multisig_txset"`
 	// tx_hash - String for the publically searchable transaction hash
 	TxHash string `json:"tx_hash"`
 	// tx_key - String for the transaction key if get_tx_key is true, otherwise, blank string.
 	TxKey string `json:"tx_key,omitempty"`
 	// tx_blob - Transaction as hex string if get_tx_hex is true
-	TxBlob string `json:"tx_blob,omitempty"`
+	TxBlob     string `json:"tx_blob,omitempty"`
+	TxMetadata string `json:"tx_metadata,omitempty"`
 }
 
 // TransferSplitResponse is the successful output of a Client.TransferSplit()
@@ -100,14 +119,15 @@ type Payment struct {
 
 // GetTransfersRequest = GetTransfers body
 type GetTransfersRequest struct {
-	In             bool   `json:"in"`
-	Out            bool   `json:"out"`
-	Pending        bool   `json:"pending"`
-	Failed         bool   `json:"failed"`
-	Pool           bool   `json:"pool"`
-	FilterByHeight bool   `json:"filter_by_height"`
-	MinHeight      uint64 `json:"min_height"`
-	MaxHeight      uint64 `json:"max_height"`
+	In             bool     `json:"in"`
+	Out            bool     `json:"out"`
+	Pending        bool     `json:"pending"`
+	Failed         bool     `json:"failed"`
+	Pool           bool     `json:"pool"`
+	FilterByHeight bool     `json:"filter_by_height"`
+	MinHeight      uint64   `json:"min_height"`
+	MaxHeight      uint64   `json:"max_height"`
+	SubaddrIndices []uint32 `json:"subaddr_indices,omitempty"`
 }
 
 // GetTransfersResponse = GetTransfers output
@@ -121,15 +141,25 @@ type GetTransfersResponse struct {
 
 // Transfer is the transfer data of
 type Transfer struct {
-	TxID         string        `json:"txid"`
-	PaymentID    string        `json:"payment_id"`
-	Height       uint64        `json:"height"`
-	Timestamp    uint64        `json:"timestamp"`
-	Amount       uint64        `json:"amount"`
-	Fee          uint64        `json:"fee"`
-	Note         string        `json:"note"`
-	Destinations []Destination `json:"destinations,omitempty"` // TODO: check if deprecated
-	Type         string        `json:"type"`
+	Address      string `json:"address"`
+	Amount       int64  `json:"amount"`
+	Destinations []struct {
+		Address string `json:"address"`
+		Amount  int64  `json:"amount"`
+	} `json:"destinations"`
+	DoubleSpendSeen bool   `json:"double_spend_seen"`
+	Fee             int    `json:"fee"`
+	Height          uint64 `json:"height"`
+	Note            string `json:"note"`
+	PaymentID       string `json:"payment_id"`
+	SubaddrIndex    struct {
+		Major int `json:"major"`
+		Minor int `json:"minor"`
+	} `json:"subaddr_index"`
+	Timestamp  int    `json:"timestamp"`
+	TxID       string `json:"txid"`
+	Type       string `json:"type"`
+	UnlockTime int    `json:"unlock_time"`
 }
 
 // IncTransfer is returned by IncomingTransfers
