@@ -142,7 +142,7 @@ type GetTransfersResponse struct {
 // Transfer is the transfer data of
 type Transfer struct {
 	Address      string `json:"address"`
-	Amount       int64  `json:"amount"`
+	Amount       uint64 `json:"amount"`
 	Destinations []struct {
 		Address string `json:"address"`
 		Amount  int64  `json:"amount"`
