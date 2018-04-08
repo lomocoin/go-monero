@@ -148,7 +148,7 @@ type Transfer struct {
 		Amount  int64  `json:"amount"`
 	} `json:"destinations"`
 	DoubleSpendSeen bool   `json:"double_spend_seen"`
-	Fee             int    `json:"fee"`
+	Fee             uint64 `json:"fee"`
 	Height          uint64 `json:"height"`
 	Note            string `json:"note"`
 	PaymentID       string `json:"payment_id"`

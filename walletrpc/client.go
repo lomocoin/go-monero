@@ -18,9 +18,6 @@ type Client interface {
 	// Return the wallet's address.
 	// address - string; The 95-character hex address string of the monero-wallet-rpc in session.
 	GetAddress(req *AddressRequest) (address *AddressResponse, err error)
-	// Return the wallet's subaddress.
-	// address - string; The 95-character hex address string of the monero-wallet-rpc in session.
-	GetAddressNew() (address string, addressIndex uint32, err error)
 	// GetHeight - Returns the wallet's current block height.
 	// height - unsigned int; The current monero-wallet-rpc's blockchain height.
 	// If the wallet has been offline for a long time, it may need to catch up with the daemon.
@@ -190,25 +187,6 @@ func (c *client) GetAddress(req *AddressRequest) (address *AddressResponse, err 
 	if err != nil {
 		return nil, err
 	}
-	return
-}
-
-func (c *client) GetAddressNew() (address string, addressIndex uint32, err error) {
-	jin := struct {
-		AccountIndex uint32 `json:"account_index"`
-		Label        string `json:"label,omitempty"`
-	}{
-		AccountIndex: 0,
-	}
-	jd := struct {
-		Address string `json:"address"`
-		Index   uint32 `json:"address_index"`
-	}{}
-	err = c.do("create_address", &jin, &jd)
-	if err != nil {
-		return
-	}
-	address, addressIndex = jd.Address, jd.Index
 	return
 }
 
